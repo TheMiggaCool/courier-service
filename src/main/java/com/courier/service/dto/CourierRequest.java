@@ -1,0 +1,29 @@
+package com.courier.service.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+
+/**
+ * Datos requeridos para la creación/modificación de repartidores
+ * @author TheMiggaCool
+ */
+public class CourierRequest {
+
+    /**
+     * Nombre del repartidor
+     */
+    @NotBlank(message = "El nombre del repartidor es obligatorio.")
+    private String nombre;
+
+    /**
+     * Vehículo del repartidor
+     */
+    @NotBlank(message = "El tipo de vehiculo del repartidor es obligatorio.")
+    private String tipoVehiculo;
+}
