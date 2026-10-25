@@ -110,7 +110,7 @@ public class CourierServiceImpl implements CourierService {
                 .id(courier.getId())
                 .nombre(courier.getNombre())
                 .tipoVehiculo(courier.getTipoVehiculo())
-                .estadoCourier(courier.getEstado())
+                .estado(courier.getEstado())
                 .build();
     }
 }

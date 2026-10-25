@@ -2,6 +2,8 @@ package com.courier.service.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -115,6 +117,37 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIntegridadDeDatos(
             DataIntegrityViolationException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "La operación viola una restricción de integridad de datos");
+    }
+
+    /** El userId no corresponde a un usuario REPARTIDOR existente (400 Bad Request). */
+    @ExceptionHandler(UsuarioInvalidoException.class)
+    public ResponseEntity<ErrorResponse> handleUsuarioInvalido(
+            UsuarioInvalidoException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /** security-service no disponible o con respuesta inesperada (503 Service Unavailable). */
+    @ExceptionHandler(ServicioExternoException.class)
+    public ResponseEntity<ErrorResponse> handleServicioExterno(
+            ServicioExternoException ex, HttpServletRequest request) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    /**
+     * Acceso denegado por {@code @PreAuthorize} (403 Forbidden). Sin este handler el
+     * {@code @ExceptionHandler(Exception.class)} de abajo lo convertiría en un 500.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccesoDenegado(
+            AccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "No tiene permisos para acceder a este recurso");
+    }
+
+    /** Falta de autenticación detectada dentro del controlador (401 Unauthorized). */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleNoAutenticado(
+            AuthenticationException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, "Autenticación requerida");
     }
 
     /**
