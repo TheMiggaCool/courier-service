@@ -1,3 +1,13 @@
 spring:
   application:
     name: courier-service
+
+# Puerto donde se ejecutará el servicio
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
