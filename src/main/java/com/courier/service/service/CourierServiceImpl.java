@@ -3,14 +3,21 @@ package com.courier.service.service;
 import java.util.List;
 import java.util.UUID;
 
-import com.courier.service.dto.CourierRequest;
-import com.courier.service.dto.CourierResponse;
-import com.courier.service.enums.EstadoCourier;
-import com.courier.service.exceptions.RecursoNoEncontradoException;
-import com.courier.service.model.Courier;
-import com.courier.service.repository.CourierRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.courier.service.client.UsuarioRolVerifier;
+import com.courier.service.dto.CourierEstadoRequest;
+import com.courier.service.dto.CourierRequest;
+import com.courier.service.dto.CourierResponse;
+import com.courier.service.dto.CourierUpdateRequest;
+import com.courier.service.dto.DisponibilidadResponse;
+import com.courier.service.enums.EstadoCourier;
+import com.courier.service.exceptions.RecursoNoEncontradoException;
+import com.courier.service.exceptions.RecursoYaExistenteException;
+import com.courier.service.model.Courier;
+import com.courier.service.repository.CourierRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,62 +27,90 @@ import lombok.extern.slf4j.Slf4j;
 public class CourierServiceImpl implements CourierService {
 
     private final CourierRepository courierRepository;
+    private final UsuarioRolVerifier usuarioRolVerifier;
 
+    /**
+     * Sin {@code @Transactional} a propósito: la llamada HTTP a security-service no debe
+     * mantener una transacción (ni una conexión de BD) abierta. Si dos altas del mismo
+     * userId compiten, la PK hace fallar a la segunda y el handler global responde 409.
+     */
     @Override
-    @Transactional
-    public CourierResponse create(CourierRequest CourierRequest) {
-        Courier Courier = mapToEntity(CourierRequest);
-        Courier savedCourier = courierRepository.save(Courier);
-        log.info("Se ha creado el Courier: " + savedCourier.getId());
+    public CourierResponse create(CourierRequest request) {
+        if (courierRepository.existsById(request.getUserId())) {
+            throw new RecursoYaExistenteException("Ya existe un courier para el usuario " + request.getUserId());
+        }
+        usuarioRolVerifier.verificarRepartidor(request.getUserId());
 
-        return mapToResponseDto(savedCourier);
+        Courier courier = Courier.builder()
+                .id(request.getUserId())
+                .nombre(request.getNombre())
+                .tipoVehiculo(request.getTipoVehiculo())
+                .estado(EstadoCourier.ACTIVO)
+                .build();
+        Courier guardado = courierRepository.save(courier);
+        log.info("Se ha creado el Courier: {}", guardado.getId());
+        return toResponse(guardado);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CourierResponse> findAll(EstadoCourier estadoCourier) {
-        List<Courier> Courieres = null;
-        if (estadoCourier == null) {
-            Courieres = courierRepository.findAll();
-            log.info("Se han encontraron " + Courieres.size() + " Courieres");
-        } else {
-            Courieres = courierRepository.findByEstadoCourier(estadoCourier);
-            log.info("Se han encontraron " + Courieres.size() + " Courieres: " + estadoCourier);
-        }
-        return Courieres
-                .stream()
-                .map(this::mapToResponseDto)
-                .toList();
+    public List<CourierResponse> findAll(EstadoCourier estado) {
+        List<Courier> couriers = (estado == null)
+                ? courierRepository.findAll()
+                : courierRepository.findByEstado(estado);
+        log.info("Se encontraron {} couriers{}", couriers.size(), estado == null ? "" : " en estado " + estado);
+        return couriers.stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public CourierResponse findById(UUID id) {
-        Courier Courier = courierRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.info("NO se ha encontro el Courier: " + id);
-                    return new RecursoNoEncontradoException("Courier no encontrado: " + id);
-                });
-        log.info("Se ha encontro el Courier: " + id);
-        return mapToResponseDto(Courier);
+        return toResponse(buscar(id));
     }
 
-    private CourierResponse mapToResponseDto(Courier courier) {
+    @Override
+    @Transactional
+    public CourierResponse update(UUID id, CourierUpdateRequest request) {
+        Courier courier = buscar(id);
+        courier.setNombre(request.getNombre());
+        courier.setTipoVehiculo(request.getTipoVehiculo());
+        log.info("Se actualizaron los datos del Courier: {}", id);
+        return toResponse(courierRepository.save(courier));
+    }
+
+    @Override
+    @Transactional
+    public CourierResponse cambiarEstado(UUID id, CourierEstadoRequest request) {
+        Courier courier = buscar(id);
+        courier.setEstado(request.getEstado());
+        log.info("Courier {} pasó a estado {}", id, request.getEstado());
+        return toResponse(courierRepository.save(courier));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DisponibilidadResponse consultarDisponibilidad(UUID id) {
+        Courier courier = buscar(id);
+        return DisponibilidadResponse.builder()
+                .courierId(courier.getId())
+                .disponible(courier.getEstado() == EstadoCourier.ACTIVO)
+                .estado(courier.getEstado())
+                .build();
+    }
+
+    private Courier buscar(UUID id) {
+        return courierRepository.findById(id).orElseThrow(() -> {
+            log.info("NO se ha encontrado el Courier: {}", id);
+            return new RecursoNoEncontradoException("Courier no encontrado: " + id);
+        });
+    }
+
+    private CourierResponse toResponse(Courier courier) {
         return CourierResponse.builder()
                 .id(courier.getId())
                 .nombre(courier.getNombre())
                 .tipoVehiculo(courier.getTipoVehiculo())
-                .estadoCourier(courier.getEstadoCourier())
+                .estadoCourier(courier.getEstado())
                 .build();
     }
-
-    private Courier mapToEntity(CourierRequest courierRequest) {
-        Courier courier = Courier.builder()
-                .nombre(courierRequest.getNombre())
-                .tipoVehiculo(courierRequest.getTipoVehiculo())
-                .estadoCourier(EstadoCourier.ACTIVO)
-                .build();
-        return courier;
-    }
-
 }

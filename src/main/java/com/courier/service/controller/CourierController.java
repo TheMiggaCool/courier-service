@@ -3,46 +3,83 @@ package com.courier.service.controller;
 import java.util.List;
 import java.util.UUID;
 
-import com.courier.service.dto.CourierRequest;
-import com.courier.service.dto.CourierResponse;
-import com.courier.service.enums.EstadoCourier;
-import com.courier.service.model.Courier;
-import com.courier.service.service.CourierService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.courier.service.dto.CourierEstadoRequest;
+import com.courier.service.dto.CourierRequest;
+import com.courier.service.dto.CourierResponse;
+import com.courier.service.dto.CourierUpdateRequest;
+import com.courier.service.dto.DisponibilidadResponse;
+import com.courier.service.enums.EstadoCourier;
+import com.courier.service.service.CourierService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Endpoints REST de couriers.
+ *
+ * <p>Autorización: ADMIN gestiona todo. Un REPARTIDOR solo puede ver/editar SU propio perfil
+ * (el id del recurso debe coincidir con el {@code sub} del JWT).</p>
+ * @author TheMiggaCool
+ */
 @RestController
 @RequestMapping("/couriers")
 @RequiredArgsConstructor
 public class CourierController {
 
+    private static final String ADMIN = "hasRole('ADMIN')";
+    private static final String ADMIN_O_PROPIETARIO =
+            "hasRole('ADMIN') or (hasRole('REPARTIDOR') and #id.toString() == authentication.name)";
+
     private final CourierService courierService;
 
     @PostMapping
-    public ResponseEntity<CourierResponse> create(@Valid @RequestBody CourierRequest repartidorRequest) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(courierService.create(repartidorRequest));
+    @PreAuthorize(ADMIN)
+    public ResponseEntity<CourierResponse> create(@Valid @RequestBody CourierRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(courierService.create(request));
     }
 
     @GetMapping
+    @PreAuthorize(ADMIN)
     public ResponseEntity<List<CourierResponse>> findAll(@RequestParam(required = false) EstadoCourier estado) {
         return ResponseEntity.ok(courierService.findAll(estado));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(ADMIN_O_PROPIETARIO)
     public ResponseEntity<CourierResponse> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(courierService.findById(id));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize(ADMIN_O_PROPIETARIO)
+    public ResponseEntity<CourierResponse> update(@PathVariable UUID id,
+                                                  @Valid @RequestBody CourierUpdateRequest request) {
+        return ResponseEntity.ok(courierService.update(id, request));
+    }
 
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize(ADMIN)
+    public ResponseEntity<CourierResponse> cambiarEstado(@PathVariable UUID id,
+                                                         @Valid @RequestBody CourierEstadoRequest request) {
+        return ResponseEntity.ok(courierService.cambiarEstado(id, request));
+    }
 
+    @GetMapping("/{id}/disponibilidad")
+    @PreAuthorize(ADMIN_O_PROPIETARIO)
+    public ResponseEntity<DisponibilidadResponse> disponibilidad(@PathVariable UUID id) {
+        return ResponseEntity.ok(courierService.consultarDisponibilidad(id));
+    }
 }
