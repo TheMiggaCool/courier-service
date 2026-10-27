@@ -2,9 +2,23 @@ spring:
   application:
     name: courier-service
   config:
-    import: configserver:http://localhost:8888 # Cambia la URL si tu config-server está en otro lado
-
-# Puerto donde se ejecutará el servicio
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          public-key-location: ${JWT_PUBLIC_KEY_LOCATION}
 server:
   port: 8082
 
@@ -13,3 +27,9 @@ management:
     web:
       exposure:
         include: health,info
+
+# Configuración del cliente para el servicio de seguridad
+logitrack:
+  clients:
+    security:
+      base-url: ${SECURITY_SERVICE_URL:http://localhost:8081}
