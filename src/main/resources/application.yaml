@@ -1,6 +1,8 @@
 spring:
   application:
     name: courier-service
+  config:
+    import: configserver:http://localhost:8888 # Cambia la URL si tu config-server está en otro lado
 
 # Puerto donde se ejecutará el servicio
 server:
