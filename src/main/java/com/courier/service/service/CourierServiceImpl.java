@@ -92,7 +92,7 @@ public class CourierServiceImpl implements CourierService {
     public DisponibilidadResponse consultarDisponibilidad(UUID id) {
         Courier courier = buscar(id);
         return DisponibilidadResponse.builder()
-                .courierId(courier.getId())
+                .id(courier.getId())
                 .disponible(courier.getEstado() == EstadoCourier.ACTIVO)
                 .estado(courier.getEstado())
                 .build();
