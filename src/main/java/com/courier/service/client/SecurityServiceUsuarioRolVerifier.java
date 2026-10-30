@@ -2,7 +2,6 @@ package com.courier.service.client;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Consulta {@code GET {security-service}/users/{id}} reenviando el JWT del ADMIN que
- * está dando de alta al courier. Espera un JSON con al menos {@code roles: ["REPARTIDOR", ...]}.
+ * está dando de alta al courier. Espera un JSON con el campo {@code role: "REPARTIDOR"}.
  *
  * <p>Esta llamada es SOLO para el alta. La validación del JWT de cada request sigue
  * siendo local (clave pública), sin consultar a security-service.</p>
@@ -64,8 +63,7 @@ public class SecurityServiceUsuarioRolVerifier implements UsuarioRolVerifier {
             throw new ServicioExternoException("No se pudo consultar a security-service");
         }
 
-        boolean esRepartidor = usuario != null && usuario.roles() != null && usuario.roles().stream()
-                .anyMatch(r -> ROL_REPARTIDOR.equals(r) || ("ROLE_" + ROL_REPARTIDOR).equals(r));
+        boolean esRepartidor = usuario != null && ROL_REPARTIDOR.equals(usuario.role());
         if (!esRepartidor) {
             throw new UsuarioInvalidoException("El usuario " + userId + " no tiene el rol REPARTIDOR");
         }
@@ -79,6 +77,6 @@ public class SecurityServiceUsuarioRolVerifier implements UsuarioRolVerifier {
     }
 
     /** Subconjunto de la respuesta de security-service que nos interesa. */
-    record UsuarioDto(UUID id, List<String> roles) {
+    record UsuarioDto(UUID id, String role) {
     }
 }
