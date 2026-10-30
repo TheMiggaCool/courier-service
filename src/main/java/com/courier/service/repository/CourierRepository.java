@@ -27,5 +27,5 @@ public interface CourierRepository extends JpaRepository<Courier, UUID> {
      */
     //Optional<Courier> findByEstadoCourier(EstadoCourier estado);
 
-    public List<Courier> findByEstadoCourier(EstadoCourier estado);
+    List<Courier> findByEstado(EstadoCourier estado);
 }

@@ -19,6 +19,6 @@ public class CourierResponse {
     private UUID id;
     private String nombre;
     private String tipoVehiculo;
-    private EstadoCourier estadoCourier;
+    private EstadoCourier estado;
 
 }

@@ -1,0 +1,27 @@
+# Reemplaza (no se suma a) src/main/resources/application.yaml durante los tests:
+# sin Config Server, con H2 en memoria y sin servicios externos.
+spring:
+  application:
+    name: courier-service
+  cloud:
+    config:
+      enabled: false
+  datasource:
+    url: jdbc:h2:mem:courier;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+# spring.security.oauth2.resourceserver.jwt.public-key-location se inyecta desde JwtTestSupport.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logitrack:
+  clients:
+    security:
+      base-url: http://localhost:0
