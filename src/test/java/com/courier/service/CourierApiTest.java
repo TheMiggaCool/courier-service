@@ -260,7 +260,7 @@ class CourierApiTest {
 
             mvc.perform(conAdmin(get("/couriers/" + activo + "/disponibilidad")))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.courierId").value(activo.toString()))
+                    .andExpect(jsonPath("$.id").value(activo.toString()))
                     .andExpect(jsonPath("$.disponible").value(true));
             mvc.perform(conAdmin(get("/couriers/" + inactivo + "/disponibilidad")))
                     .andExpect(status().isOk())
