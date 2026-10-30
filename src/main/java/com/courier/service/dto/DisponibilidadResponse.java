@@ -21,7 +21,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class DisponibilidadResponse {
 
-    private UUID courierId;
+    private UUID id;
     /** true si el courier está ACTIVO y por lo tanto puede recibir asignaciones. */
     private boolean disponible;
     private EstadoCourier estado;
